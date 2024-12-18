@@ -1,6 +1,26 @@
 defmodule Ollama.MockServer do
   use Plug.Router
 
+  @structured_mocks %{
+    chat: """
+    {
+      "model": "llama2",
+      "created_at": "2023-08-04T19:22:45.499127Z",
+      "message": {
+        "role":"assistant",
+        "content": "{\\\"name\\\": \\\"Canada\\\", \\\"capital\\\": \\\"Ottawa\\\", \\\"languages\\\": [\\\"English\\\",\\\"French\\\"]}"
+      },
+      "done_reason": "stop",
+      "done": true,
+      "total_duration": 502748220,
+      "load_duration": 34570903,
+      "prompt_eval_count": 30,
+      "prompt_eval_duration": 50000000,
+      "eval_count": 26,
+      "eval_duration": 416000000
+    }
+    """
+  }
   @mocks %{
     completion: """
     {
@@ -17,7 +37,6 @@ defmodule Ollama.MockServer do
       "eval_duration": 4709213000
     }
     """,
-
     chat: """
     {
       "model": "llama2",
@@ -35,7 +54,6 @@ defmodule Ollama.MockServer do
       "eval_duration": 4799921000
     }
     """,
-
     tool_call: """
     {
       "created_at": "2024-07-26T19:52:04.834647Z",
@@ -62,7 +80,6 @@ defmodule Ollama.MockServer do
       "total_duration": 6637880709
     }
     """,
-
     tool_result: """
     {
       "created_at": "2024-07-26T19:52:07.337375Z",
@@ -81,13 +98,11 @@ defmodule Ollama.MockServer do
       "total_duration": 2483884417
     }
     """,
-
     create_model: """
     {
       "status": "success"
     }
     """,
-
     show_model: """
     {
       "modelfile": "...",
@@ -102,7 +117,6 @@ defmodule Ollama.MockServer do
       }
     }
     """,
-
     list_models: """
     {
       "models": [
@@ -135,7 +149,6 @@ defmodule Ollama.MockServer do
       ]
     }
     """,
-
     list_running: """
     {
       "models": [
@@ -159,13 +172,11 @@ defmodule Ollama.MockServer do
       ]
     }
     """,
-
     pull_model: """
     {
       "status": "success"
     }
     """,
-
     push_model: """
     {
       "status": "success"
@@ -207,7 +218,6 @@ defmodule Ollama.MockServer do
       "total_duration": 53473292
     }
     """,
-
     embeddings: """
     {
       "embedding": [
@@ -252,7 +262,6 @@ defmodule Ollama.MockServer do
       }
       """
     ],
-
     chat: [
       """
       {
@@ -292,7 +301,6 @@ defmodule Ollama.MockServer do
       }
       """
     ],
-
     create_model: [
       ~s({"status": "reading model metadata"}),
       ~s({"status": "creating system layer"}),
@@ -304,9 +312,8 @@ defmodule Ollama.MockServer do
       ~s({"status": "writing layer sha256:df30045fe90f0d750db82a058109cecd6d4de9c90a3d75b19c09e5f64580bb42"}),
       ~s({"status": "writing layer sha256:f18a68eb09bf925bb1b669490407c1b1251c5db98dc4d3d81f3088498ea55690"}),
       ~s({"status": "writing manifest"}),
-      ~s({"status": "success"}),
+      ~s({"status": "success"})
     ],
-
     pull_model: [
       ~s({"status": "pulling manifest"}),
       """
@@ -320,9 +327,8 @@ defmodule Ollama.MockServer do
       ~s({"status": "verifying sha256 digest"}),
       ~s({"status": "writing manifest"}),
       ~s({"status": "removing any unused layers"}),
-      ~s({"status": "success"}),
+      ~s({"status": "success"})
     ],
-
     push_model: [
       ~s({ "status": "retrieving manifest" }),
       """
@@ -333,20 +339,20 @@ defmodule Ollama.MockServer do
       }
       """,
       ~s({"status":"pushing manifest"}),
-      ~s({"status": "success"}),
+      ~s({"status": "success"})
     ]
   }
 
-  plug :match
-  plug Plug.Parsers, parsers: [:json], json_decoder: Jason
-  plug :dispatch
+  plug(:match)
+  plug(Plug.Parsers, parsers: [:json], json_decoder: Jason)
+  plug(:dispatch)
 
-  post "/chat", do: handle_request(conn, :chat)
-  post "/generate", do: handle_request(conn, :completion)
-  post "/create", do: handle_request(conn, :create_model)
-  get "/tags", do: handle_request(conn, :list_models)
-  get "/ps", do: handle_request(conn, :list_running)
-  post "/show", do: handle_request(conn, :show_model)
+  post("/chat", do: handle_request(conn, :chat))
+  post("/generate", do: handle_request(conn, :completion))
+  post("/create", do: handle_request(conn, :create_model))
+  get("/tags", do: handle_request(conn, :list_models))
+  get("/ps", do: handle_request(conn, :list_running))
+  post("/show", do: handle_request(conn, :show_model))
 
   post "/copy" do
     case conn.body_params do
@@ -362,18 +368,21 @@ defmodule Ollama.MockServer do
     end
   end
 
-  post "/pull", do: handle_request(conn, :pull_model)
-  post "/push", do: handle_request(conn, :push_model)
+  post("/pull", do: handle_request(conn, :pull_model))
+  post("/push", do: handle_request(conn, :push_model))
 
   head "/blobs/:digest" do
     case conn.params["digest"] do
-      "sha256:cd58120326971c71c0590f6b7084a0744e287ce9c67275d8b4bf34a5947d950b" -> respond(conn, 200)
-      _ -> respond(conn, 404)
+      "sha256:cd58120326971c71c0590f6b7084a0744e287ce9c67275d8b4bf34a5947d950b" ->
+        respond(conn, 200)
+
+      _ ->
+        respond(conn, 404)
     end
   end
 
-  post "/blobs/:digest", do: respond(conn, 200)
-  post "/embeddings", do: handle_request(conn, :embeddings)
+  post("/blobs/:digest", do: respond(conn, 200))
+  post("/embeddings", do: handle_request(conn, :embeddings))
 
   post "/embed" do
     case conn.body_params do
@@ -385,25 +394,44 @@ defmodule Ollama.MockServer do
 
   defp handle_request(conn, name) do
     case conn.body_params do
-      %{"model" => "not-found"} -> respond(conn, 404)
-      %{"name" => "not-found"} -> respond(conn, 404)
+      %{"model" => "not-found"} ->
+        respond(conn, 404)
+
+      %{"name" => "not-found"} ->
+        respond(conn, 404)
+
       %{"model" => "mistral-nemo", "messages" => messages} when length(messages) == 1 ->
         respond(conn, :tool_call)
+
       %{"model" => "mistral-nemo", "messages" => messages} when length(messages) > 1 ->
         respond(conn, :tool_result)
-      %{"stream" => true} -> stream(conn, name)
-      _ -> respond(conn, name)
+
+      %{"stream" => true} ->
+        stream(conn, name)
+
+      _ ->
+        respond(conn, name)
     end
   end
 
   defp respond(conn, name) when is_atom(name) do
-    conn
-    |> put_resp_header("content-type", "application/json")
-    |> send_resp(200, @mocks[name])
+    if is_map(conn.body_params["format"]) do
+      respond_with_structure(conn, name)
+    else
+      conn
+      |> put_resp_header("content-type", "application/json")
+      |> send_resp(200, @mocks[name])
+    end
   end
 
   defp respond(conn, status) when is_number(status) do
     send_resp(conn, status, "")
+  end
+
+  defp respond_with_structure(conn, name) do
+    conn
+    |> put_resp_header("content-type", "application/json")
+    |> send_resp(200, @structured_mocks[name])
   end
 
   defp stream(conn, name) do
@@ -412,5 +440,4 @@ defmodule Ollama.MockServer do
       conn
     end)
   end
-
 end
